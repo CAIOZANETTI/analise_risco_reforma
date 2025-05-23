@@ -159,7 +159,7 @@ else:
             )
         
         st.success("✅ VME calculado com sucesso!")
-        st.experimental_rerun()  # Para atualizar o data_editor com os novos VMEs
+        st.rerun()  # Para atualizar o data_editor com os novos VMEs
 
     # 2. Simulação de Monte Carlo
     st.subheader("Simulação de Monte Carlo")
