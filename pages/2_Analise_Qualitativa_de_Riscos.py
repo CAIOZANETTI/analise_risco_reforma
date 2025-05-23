@@ -127,8 +127,52 @@ def create_heatmap_matrix():
 # Layout principal
 st.subheader("Análise Qualitativa dos Riscos Identificados")
 
-# Carregar riscos existentes
-df_risks = st.session_state[STATE_RISKS_DF].copy()
+# Carregar riscos existentes de session_state
+df_risks_session = st.session_state[STATE_RISKS_DF].copy()
+
+# Colunas para visualização e edição no data_editor
+cols_to_show = [
+    "ID_Risco", "Descricao_Risco", "Tipo_Risco", "Categoria_Risco",
+    "Probabilidade_Qualitativa", "Impacto_Custo_Qualitativo",
+    "Impacto_Prazo_Qualitativo", "Impacto_Qualidade_Qualitativo",
+    "Urgencia_Risco", "Score_Risco"
+]
+
+# Colunas qualitativas que são inputs de selectbox
+qualitative_input_cols = [
+    "Probabilidade_Qualitativa", "Impacto_Custo_Qualitativo",
+    "Impacto_Prazo_Qualitativo", "Impacto_Qualidade_Qualitativo",
+    "Urgencia_Risco"
+]
+
+# Garantir que colunas qualitativas existam e sejam string (para selectbox)
+for col in qualitative_input_cols:
+    if col not in df_risks_session.columns:
+        df_risks_session[col] = ""  # Default para selectbox
+    else:
+        # Converter para string e preencher NaN com string vazia
+        df_risks_session[col] = df_risks_session[col].fillna("").astype(str)
+
+# Garantir que 'Score_Risco' exista e seja numérico (float)
+if "Score_Risco" not in df_risks_session.columns:
+    df_risks_session["Score_Risco"] = 0.0
+else:
+    df_risks_session["Score_Risco"] = pd.to_numeric(df_risks_session["Score_Risco"], errors='coerce').fillna(0.0)
+
+# Garantir que 'Probabilidade_Num' (calculada, não no editor) exista e seja numérico (float)
+if "Probabilidade_Num" not in df_risks_session.columns:
+    df_risks_session["Probabilidade_Num"] = 0.0
+else:
+    df_risks_session["Probabilidade_Num"] = pd.to_numeric(df_risks_session["Probabilidade_Num"], errors='coerce').fillna(0.0)
+
+# Salvar a versão preparada/limpa de volta ao session_state,
+# para que na próxima recarga ou se o usuário navegar e voltar, os tipos estejam corretos.
+# No entanto, a principal fonte de verdade para o data_editor será uma cópia desta.
+st.session_state[STATE_RISKS_DF] = df_risks_session.copy()
+
+# DataFrame que será passado para o st.data_editor (apenas colunas selecionadas)
+# É importante fazer uma cópia aqui para que o data_editor não modifique df_risks_session diretamente.
+df_for_editor = df_risks_session[cols_to_show].copy()
 
 # Explicação das escalas
 with st.expander("Escalas de Avaliação", expanded=False):
@@ -165,18 +209,10 @@ with st.expander("Escalas de Avaliação", expanded=False):
 # Tabela editável para análise qualitativa
 st.write("Classifique cada risco de acordo com as escalas definidas:")
 
-# Configurar colunas para visualização e edição
-cols_to_show = [
-    "ID_Risco", "Descricao_Risco", "Tipo_Risco", "Categoria_Risco", 
-    "Probabilidade_Qualitativa", "Impacto_Custo_Qualitativo", 
-    "Impacto_Prazo_Qualitativo", "Impacto_Qualidade_Qualitativo", 
-    "Urgencia_Risco", "Score_Risco"
-]
-
 # Garantir que todas as colunas existam
 for col in cols_to_show:
-    if col not in df_risks.columns:
-        df_risks[col] = ""
+    if col not in df_risks_session.columns:
+        df_risks_session[col] = ""
 
 # Configuração das colunas para o editor
 column_config = {
@@ -206,7 +242,7 @@ column_config = {
 
 # Mostrar o editor de dados
 edited_df = st.data_editor(
-    df_risks[cols_to_show],
+    df_for_editor, # Usar o DataFrame preparado e fatiado
     column_config=column_config,
     use_container_width=True,
     key="qualitative_analysis_editor",
@@ -215,23 +251,42 @@ edited_df = st.data_editor(
 
 # Botão para calcular scores de risco
 if st.button("Calcular Scores de Risco", use_container_width=True):
-    # Calcular scores para todos os riscos
-    for idx, row in edited_df.iterrows():
-        edited_df.at[idx, "Score_Risco"] = calculate_risk_score(
-            row["Probabilidade_Qualitativa"],
-            row["Impacto_Custo_Qualitativo"],
-            row["Impacto_Prazo_Qualitativo"],
-            row["Impacto_Qualidade_Qualitativo"],
-            row["Urgencia_Risco"]
-        )
+    # Obter o DataFrame do session_state para atualização
+    df_to_update = st.session_state[STATE_RISKS_DF].copy()
+
+    # Iterar sobre as linhas do DataFrame editado no st.data_editor
+    for idx_edited, row_edited in edited_df.iterrows():
+        risk_id_edited = row_edited["ID_Risco"]
         
-        # Calcular probabilidade numérica (0-1) para uso na análise quantitativa
-        edited_df.at[idx, "Probabilidade_Num"] = qualitative_to_numeric(
-            row["Probabilidade_Qualitativa"], PROBABILIDADE_OPTIONS
-        )
+        # Encontrar a linha correspondente no DataFrame principal (df_to_update)
+        mask = df_to_update["ID_Risco"] == risk_id_edited
+        if mask.any():
+            # Atualizar as colunas qualitativas com os valores do editor
+            for col_qual in qualitative_input_cols: # qualitative_input_cols foi definido antes
+                if col_qual in row_edited.index:
+                    df_to_update.loc[mask, col_qual] = row_edited[col_qual]
+            
+            # Calcular o novo score de risco
+            new_score = calculate_risk_score(
+                row_edited["Probabilidade_Qualitativa"],
+                row_edited["Impacto_Custo_Qualitativo"],
+                row_edited["Impacto_Prazo_Qualitativo"],
+                row_edited["Impacto_Qualidade_Qualitativo"],
+                row_edited["Urgencia_Risco"]
+            )
+            df_to_update.loc[mask, "Score_Risco"] = new_score
+            
+            # Calcular a nova probabilidade numérica
+            new_prob_num = qualitative_to_numeric(
+                row_edited["Probabilidade_Qualitativa"], PROBABILIDADE_OPTIONS
+            )
+            df_to_update.loc[mask, "Probabilidade_Num"] = new_prob_num
+
+    # Salvar o DataFrame atualizado de volta no session_state
+    st.session_state[STATE_RISKS_DF] = df_to_update
     
-    st.success("✅ Scores de risco calculados com sucesso!")
-    st.rerun()  # Para atualizar o data_editor com os novos scores
+    st.success("✅ Scores de risco calculados e atualizados com sucesso!")
+    st.rerun()  # Para atualizar o data_editor com os novos scores e seleções
 
 # Botão para salvar análise qualitativa
 if st.button("💾 Salvar Análise Qualitativa", use_container_width=True):
