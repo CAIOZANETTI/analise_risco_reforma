@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 # Importar configurações
 from config import (
     STATE_RISKS_DF, STATE_USER_DATA, STATE_PROJECT_DATA, STATE_USER_CONFIG_COMPLETED,
-    TIPO_RISCO_OPTIONS, ESTRATEGIA_RESPOSTA_AMEACA_OPTIONS, ESTRATEGIA_RESPOSTA_OPORTUNIDADE_OPTIONS,
-    STATUS_ACAO_OPTIONS, STATUS_RISCO_OPTIONS
+    THRESHOLD_SCORE_DEFAULT, ESTRATEGIA_RESPOSTA_AMEACA_OPTIONS, 
+    ESTRATEGIA_RESPOSTA_OPORTUNIDADE_OPTIONS, STATUS_ACAO_OPTIONS, STATUS_RISCO_OPTIONS
 )
 
 # Importar logger para registro de eventos
@@ -118,11 +118,8 @@ else:
             "Score_Risco": st.column_config.NumberColumn("Score", format="%.1f", width="small", disabled=True),
             "Estrategia_Resposta": st.column_config.SelectboxColumn(
                 "Estratégia", width="medium",
-                options=lambda row: (
-                    ESTRATEGIA_RESPOSTA_AMEACA_OPTIONS if row["Tipo_Risco"] == "Ameaça" 
-                    else ESTRATEGIA_RESPOSTA_OPORTUNIDADE_OPTIONS
-                ),
-                help="Estratégia de resposta baseada no tipo de risco"),
+                options=list(set(ESTRATEGIA_RESPOSTA_AMEACA_OPTIONS + ESTRATEGIA_RESPOSTA_OPORTUNIDADE_OPTIONS)),
+                help="Estratégia de resposta. Valide se é apropriada para o Tipo de Risco ao salvar."),
             "Descricao_Acao_Resposta": st.column_config.TextAreaColumn(
                 "Descrição da Ação", width="large",
                 help="Detalhe as ações específicas para implementar a estratégia"),
