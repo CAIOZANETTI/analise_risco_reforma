@@ -1,0 +1,21 @@
+ID_Tipo,Categoria_Construcao,Proposito_Construcao
+1,Residencial,Casa Unifamiliar
+2,Residencial,Apartamento
+3,Residencial,Condomínio de Casas
+4,Residencial,Sobrado
+5,Residencial,Kitnet/Studio
+6,Comercial,Escritório
+7,Comercial,Loja
+8,Comercial,Restaurante
+9,Comercial,Hotel
+10,Comercial,Centro Comercial
+11,Industrial,Fábrica
+12,Industrial,Galpão
+13,Industrial,Depósito
+14,Industrial,Centro de Distribuição
+15,Institucional,Escola
+16,Institucional,Hospital
+17,Institucional,Igreja/Templo
+18,Institucional,Museu
+19,Misto,Comercial e Residencial
+20,Misto,Comercial e Industrial 

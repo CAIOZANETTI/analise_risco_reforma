@@ -1,0 +1,11 @@
+ID_Risco,Descricao_Risco,Tipo_Risco,Categoria_Risco,Subcategoria_Risco,Efeito_Custo_Min,Efeito_Custo_Max,Efeito_Prazo_Min_Dias,Efeito_Prazo_Max_Dias,Gatilhos_Risco,Possiveis_Causas_Raiz
+R001,Atraso na entrega de materiais críticos,Ameaça,Fornecedor,Logística,2000,10000,5,20,Comunicação inconsistente com fornecedor,Planejamento inadequado de aquisições
+R002,Descoberta de problemas estruturais não identificados previamente,Ameaça,Técnico,Estrutural,5000,30000,10,45,Rachaduras após remoção de revestimentos,Inspeção preliminar insuficiente
+R003,Condições climáticas desfavoráveis que atrasam trabalhos externos,Ameaça,Externo,Ambiental,1000,5000,3,15,Previsão de chuvas consecutivas,Planejamento que não considerou sazonalidade
+R004,Escassez de mão de obra qualificada,Ameaça,Recursos Humanos,Contratação,3000,15000,5,30,Alta demanda no mercado da construção local,Falta de análise prévia da disponibilidade de profissionais
+R005,Mudanças solicitadas pelo cliente durante a execução,Ameaça,Gerencial,Escopo,2500,20000,7,40,Cliente visitando a obra regularmente,Definição imprecisa do escopo inicial
+R006,Economia por negociação em volume com fornecedores,Oportunidade,Financeiro,Aquisições,-10000,-3000,-5,0,Grandes quantidades do mesmo material,Planejamento antecipado das compras
+R007,Otimização do cronograma por metodologia ágil de gestão,Oportunidade,Gerencial,Cronograma,-5000,-1000,-15,-3,Adoção de metodologia Scrum/Kanban,Capacidade de replanejar constantemente
+R008,Reutilização de materiais recuperados durante demolição,Oportunidade,Ambiental,Sustentabilidade,-8000,-2000,-10,-2,Materiais em bom estado identificados durante desmontagem,Avaliação cuidadosa antes do descarte
+R009,Problemas de compatibilidade com instalações elétricas existentes,Ameaça,Técnico,Instalações,1500,12000,2,20,Disjuntores disparando após novas conexões,Documentação desatualizada das instalações existentes
+R010,Inflação acima do previsto para materiais de construção,Ameaça,Externo,Mercado,2000,25000,0,10,Indicadores econômicos em tendência de alta,Instabilidade econômica global/nacional 
