@@ -241,11 +241,61 @@ else:
     
     if run_simulation:
         # Verificar se há dados suficientes para simulação
-        valid_risks_for_sim = df_analyzed[
-            (df_analyzed["Probabilidade_Num"] > 0) & 
-            (df_analyzed["Efeito_Custo_Min"].notna() | df_analyzed["Efeito_Prazo_Min_Dias"].notna())
+        # Garantir que colunas necessárias são numéricas e preencher NaNs com 0 ou valor apropriado
+        cols_for_sim_check = [
+            "Probabilidade_Num", "Efeito_Custo_Min", "Efeito_Custo_Max",
+            "Efeito_Prazo_Min_Dias", "Efeito_Prazo_Max_Dias"
         ]
+        for col in cols_for_sim_check:
+            if col in df_analyzed.columns:
+                df_analyzed[col] = pd.to_numeric(df_analyzed[col], errors='coerce').fillna(0.0)
+            else:
+                # Se a coluna não existir, criá-la com 0.0 pode não ser ideal para todos os casos,
+                # mas para a lógica de filtragem abaixo, permite que o risco seja avaliado.
+                # A função de simulação interna também faz coerção e dropna.
+                df_analyzed[col] = 0.0
+
+        # Filtro 1: Riscos com probabilidade > 0 e pelo menos um par de efeitos (custo OU prazo) preenchido
+        base_filter = (df_analyzed["Probabilidade_Num"] > 0) & \
+                      ((df_analyzed["Efeito_Custo_Min"].notna() & df_analyzed["Efeito_Custo_Max"].notna()) | \
+                       (df_analyzed["Efeito_Prazo_Min_Dias"].notna() & df_analyzed["Efeito_Prazo_Max_Dias"].notna()))
         
+        df_sim_candidates = df_analyzed[base_filter].copy()
+
+        # Filtro 2: Garantir Min <= Max para Custo
+        # Para riscos onde custo min/max são preenchidos, mas min > max, eles são inválidos
+        invalid_cost_range = (df_sim_candidates["Efeito_Custo_Min"].notna() & \
+                              df_sim_candidates["Efeito_Custo_Max"].notna() & \
+                              (df_sim_candidates["Efeito_Custo_Min"] > df_sim_candidates["Efeito_Custo_Max"]))
+        
+        if invalid_cost_range.any():
+            st.warning(f"⚠️ {invalid_cost_range.sum()} risco(s) têm 'Efeito Mín. Custo' maior que 'Efeito Máx. Custo' e serão ignorados na simulação de custo.")
+            # Opção 1: Ignorar estes para custo (eles ainda podem ter prazo válido)
+            # Opção 2: Remover completamente - para simplificar, vamos zerar os campos de custo inválidos
+            # para que a lógica da simulação (que usa 0 se um não for preenchido) os trate como sem impacto de custo.
+            df_sim_candidates.loc[invalid_cost_range, ['Efeito_Custo_Min', 'Efeito_Custo_Max']] = 0.0
+
+
+        # Filtro 3: Garantir Min <= Max para Prazo
+        invalid_duration_range = (df_sim_candidates["Efeito_Prazo_Min_Dias"].notna() & \
+                                  df_sim_candidates["Efeito_Prazo_Max_Dias"].notna() & \
+                                  (df_sim_candidates["Efeito_Prazo_Min_Dias"] > df_sim_candidates["Efeito_Prazo_Max_Dias"]))
+
+        if invalid_duration_range.any():
+            st.warning(f"⚠️ {invalid_duration_range.sum()} risco(s) têm 'Efeito Mín. Prazo' maior que 'Efeito Máx. Prazo' e serão ignorados na simulação de prazo.")
+            df_sim_candidates.loc[invalid_duration_range, ['Efeito_Prazo_Min_Dias', 'Efeito_Prazo_Max_Dias']] = 0.0
+            
+        # Filtro final: Riscos que ainda têm alguma combinação válida de (Prob > 0 E (Custo Min/Max válidos OU Prazo Min/Max válidos))
+        # A função de simulação interna também faz um dropna nas colunas numéricas essenciais.
+        # Este filtro aqui é mais para fornecer feedback ao usuário.
+        valid_risks_for_sim = df_sim_candidates[
+            (df_sim_candidates["Probabilidade_Num"] > 0) &
+            (
+                (df_sim_candidates["Efeito_Custo_Min"].notna() & df_sim_candidates["Efeito_Custo_Max"].notna()) |
+                (df_sim_candidates["Efeito_Prazo_Min_Dias"].notna() & df_sim_candidates["Efeito_Prazo_Max_Dias"].notna())
+            )
+        ].copy() # .copy() para evitar SettingWithCopyWarning mais tarde
+
         if valid_risks_for_sim.empty:
             st.error("⚠️ Não há riscos válidos para simulação. Verifique se os riscos têm probabilidades e impactos definidos.")
         else:
