@@ -280,6 +280,9 @@ st.subheader("Matriz de Probabilidade x Impacto")
 st.plotly_chart(create_heatmap_matrix(), use_container_width=True)
 
 # Se houver scores calculados, mostrar gráfico de barras com os riscos mais críticos
+# Converter 'Score_Risco' para numérico, tratando erros
+edited_df["Score_Risco"] = pd.to_numeric(edited_df["Score_Risco"], errors='coerce')
+
 if not edited_df[edited_df["Score_Risco"] > 0].empty:
     st.subheader("Top Riscos por Score")
     
