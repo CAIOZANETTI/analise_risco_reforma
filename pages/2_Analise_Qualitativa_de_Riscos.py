@@ -231,7 +231,7 @@ if st.button("Calcular Scores de Risco", use_container_width=True):
         )
     
     st.success("✅ Scores de risco calculados com sucesso!")
-    st.experimental_rerun()  # Para atualizar o data_editor com os novos scores
+    st.rerun()  # Para atualizar o data_editor com os novos scores
 
 # Botão para salvar análise qualitativa
 if st.button("💾 Salvar Análise Qualitativa", use_container_width=True):
