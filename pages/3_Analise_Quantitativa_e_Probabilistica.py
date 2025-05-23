@@ -138,10 +138,26 @@ else:
     
     # Ordenar por Score_Risco para focar nos mais críticos
     df_vme = df_analyzed.sort_values(by="Score_Risco", ascending=False).copy()
+
+    # Colunas que o usuário pode editar na tabela VME e que precisam ser salvas
+    editable_vme_cols_for_save = ["Probabilidade_Num", "Efeito_Custo_Min", "Efeito_Custo_Max"]
+
+    # Garantir que estas colunas sejam numéricas em df_vme antes de passar ao editor
+    for col in editable_vme_cols_for_save:
+        if col in df_vme.columns:
+            df_vme[col] = pd.to_numeric(df_vme[col], errors='coerce').fillna(0.0)
+        else:
+            df_vme[col] = 0.0 # Se não existir, inicializa como float
+
+    # A coluna VME_Custo também deve ser numérica
+    if "VME_Custo" in df_vme.columns:
+        df_vme["VME_Custo"] = pd.to_numeric(df_vme["VME_Custo"], errors='coerce').fillna(0.0)
+    else:
+        df_vme["VME_Custo"] = 0.0
     
     # Editor de dados para VME
     edited_vme_df = st.data_editor(
-        df_vme[vme_cols],
+        df_vme[vme_cols], # vme_cols define as colunas mostradas no editor
         column_config=vme_column_config,
         use_container_width=True,
         key="vme_editor",
@@ -150,16 +166,36 @@ else:
     
     # Botão para calcular VME
     if st.button("Calcular VME", use_container_width=True):
-        for idx, row in edited_vme_df.iterrows():
-            # Calcular VME
-            edited_vme_df.at[idx, "VME_Custo"] = calculate_vme(
-                row["Probabilidade_Num"],
-                row["Efeito_Custo_Min"],
-                row["Efeito_Custo_Max"]
-            )
+        # Obter o DataFrame principal do session_state para atualização
+        df_riscos_main = st.session_state[STATE_RISKS_DF].copy()
+
+        # Iterar sobre as linhas do DataFrame editado no st.data_editor (edited_vme_df)
+        for idx_edited, row_edited in edited_vme_df.iterrows():
+            risk_id_edited = row_edited["ID_Risco"]
+            
+            # Encontrar a linha correspondente no DataFrame principal (df_riscos_main)
+            mask = df_riscos_main["ID_Risco"] == risk_id_edited
+            if mask.any():
+                # 1. Atualizar colunas editáveis (Probabilidade_Num, Efeito_Custo_Min, Efeito_Custo_Max)
+                for col_editable in editable_vme_cols_for_save:
+                    if col_editable in row_edited.index:
+                        # Certificar que o valor é numérico antes de atribuir
+                        value_to_assign = pd.to_numeric(row_edited[col_editable], errors='coerce')
+                        df_riscos_main.loc[mask, col_editable] = value_to_assign if pd.notna(value_to_assign) else 0.0
+                
+                # 2. Calcular o novo VME_Custo com base nos valores (possivelmente atualizados) do editor
+                new_vme_custo = calculate_vme(
+                    row_edited["Probabilidade_Num"], # Usa o valor do editor
+                    row_edited["Efeito_Custo_Min"],  # Usa o valor do editor
+                    row_edited["Efeito_Custo_Max"]   # Usa o valor do editor
+                )
+                df_riscos_main.loc[mask, "VME_Custo"] = new_vme_custo
         
-        st.success("✅ VME calculado com sucesso!")
-        st.rerun()  # Para atualizar o data_editor com os novos VMEs
+        # Salvar o DataFrame principal atualizado de volta no session_state
+        st.session_state[STATE_RISKS_DF] = df_riscos_main
+        
+        st.success("✅ VME calculado e atualizado com sucesso!")
+        st.rerun()  # Para atualizar o data_editor com os novos VMEs e valores editados
 
     # 2. Simulação de Monte Carlo
     st.subheader("Simulação de Monte Carlo")
