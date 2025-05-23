@@ -89,7 +89,7 @@ if df_analyzed.empty:
     ⚠️ Nenhum risco com análise qualitativa encontrado. Por favor, complete a 
     análise qualitativa antes de prosseguir com a análise quantitativa.
     """)
-    st.page_link("2_Analise_Qualitativa_de_Riscos.py", label="Ir para Análise Qualitativa")
+    st.page_link("pages/2_Analise_Qualitativa_de_Riscos.py", label="Ir para Análise Qualitativa")
 else:
     # 1. Análise de VME
     st.subheader("Valor Monetário Esperado (VME)")
